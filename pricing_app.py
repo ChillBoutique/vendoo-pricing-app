@@ -24,16 +24,24 @@ for platform, default in zip(platforms, default_markups):
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
-    # Clean 'Base Price' column
-    df["Base Price"] = df["Base Price"].astype(str).str.replace("$", "", regex=False)
-    df["Base Price"] = pd.to_numeric(df["Base Price"], errors="coerce")
-    df = df.dropna(subset=["Base Price"])  # Drop rows where conversion failed
-
-    if "Base Price" in df.columns:
-        for platform in platforms:
-            df[f"{platform} Price"] = (df["Base Price"] * (1 + markup_dict[platform] / 100)).round(2)
-        st.write(df)
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("Download Adjusted CSV", data=csv, file_name="adjusted_prices.csv", mime="text/csv")
+    # Make sure column exists
+    if "Base Price" not in df.columns:
+        st.error("Your file must include a 'Base Price' column.")
     else:
-        st.error("Your CSV must include a 'Base Price' column.")
+        try:
+            # Clean and convert the Base Price column
+            df["Base Price"] = df["Base Price"].astype(str)
+            df["Base Price"] = df["Base Price"].str.replace("$", "", regex=False)
+            df["Base Price"] = pd.to_numeric(df["Base Price"], errors="coerce")
+            df = df.dropna(subset=["Base Price"])
+
+            # Calculate prices
+            for platform in platforms:
+                df[f"{platform} Price"] = (df["Base Price"] * (1 + markup_dict[platform] / 100)).round(2)
+
+            st.write(df)
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("Download Adjusted CSV", data=csv, file_name="adjusted_prices.csv", mime="text/csv")
+
+        except Exception as e:
+            st.error(f"Error processing 'Base Price': {e}")
