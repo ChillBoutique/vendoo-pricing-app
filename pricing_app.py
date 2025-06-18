@@ -23,6 +23,12 @@ for platform, default in zip(platforms, default_markups):
 # Process file
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
+
+    # Clean 'Base Price' column
+    df["Base Price"] = df["Base Price"].astype(str).str.replace("$", "", regex=False)
+    df["Base Price"] = pd.to_numeric(df["Base Price"], errors="coerce")
+    df = df.dropna(subset=["Base Price"])  # Drop rows where conversion failed
+
     if "Base Price" in df.columns:
         for platform in platforms:
             df[f"{platform} Price"] = (df["Base Price"] * (1 + markup_dict[platform] / 100)).round(2)
